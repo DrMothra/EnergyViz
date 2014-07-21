@@ -79,10 +79,32 @@ EnergyApp.prototype.createGUI = function() {
     this.guiData = gui.addFolder("Data");
 };
 
+EnergyApp.prototype.generateGUIControls = function() {
+
+};
+
 EnergyApp.prototype.groundColourChanged = function(value) {
     var ground = this.scene.getObjectByName('ground');
     if(ground) {
         ground.material.color.setStyle(value);
+    }
+};
+
+EnergyApp.prototype.generateData = function() {
+    //Parse data and rewrite in more suitable format
+    var selected = ['hall_name_1', 'event_date_grouping', 'show_count_1', 'total_tkt_count_1', 'total_tkt_count_2'];
+    var altered = ['hall_name', 'event_date', 'show_count', 'occupancy', 'admits'];
+    var newData = {};
+    for(var i=0; i<this.data.length; ++i) {
+        //Only save selected data
+        var item = this.data[i];
+        for(var key in item) {
+            for(var j=0; j<selected.length; ++j) {
+                if(key == selected[j]) {
+                    newData[altered[j]] = item[selected[j]];
+                }
+            }
+        }
     }
 };
 
