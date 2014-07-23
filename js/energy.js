@@ -76,6 +76,14 @@ EnergyApp.prototype.createScene = function() {
     addGroundPlane(this.scene, GROUND_WIDTH, GROUND_DEPTH);
     //Create screen
     addCinemaScreen(this.scene, SCREEN_WIDTH, SCREEN_HEIGHT);
+    //DEBUG
+    var jsonLoader = new THREE.JSONLoader();
+    var _this = this;
+    jsonLoader.load('models/person.js', function(geom, material) {
+        var mat = new THREE.MeshLambertMaterial({color : 0x0000ff});
+        var obj = new THREE.Mesh(geom, mat);
+        _this.scene.add(obj);
+    });
 };
 
 EnergyApp.prototype.createGUI = function() {
@@ -145,6 +153,7 @@ EnergyApp.prototype.generateData = function() {
         , filename);
 };
 */
+
 EnergyApp.prototype.generateData = function() {
     //Extract data - do this manually for now
     var item = this.data[0];
