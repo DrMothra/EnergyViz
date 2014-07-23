@@ -34,3 +34,59 @@ body {
     opacity: 0;
     background-color: #004040;
 }
+.info {
+    min-width: 200px;
+    padding: 5px;
+    position: absolute;
+    border-radius: 5px;
+    top: 130px;
+    left: 30px;
+    background-color: rgba(150, 150, 150, 0.5);
+    color: #7fa5ff;
+}
+.infoHeader {
+    text-align: center;
+}
+.infoCell,
+.infoCellRight {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    overflow: hidden;
+}
+.infoCellRight {
+    text-align: center;
+}
+.locationControl,
+.dateControl,
+.timeControl{
+    min-width: 130px;
+    position: absolute;
+    border-radius: 5px;
+    background-color: rgba(150, 150, 150, 0.5);
+    color: #7fa5ff;
+}
+.locationControl {
+    top: 800px;
+    left: 600px;
+}
+.dateControl {
+    top: 800px;
+    left: 800px;
+}
+.timeControl {
+    top: 800px;
+    left: 1000px;
+}
+.control {
+    padding: 5px;
+    text-align: center;
+}
+.button-control {
+    background-color: rgba(150, 150, 150, 0.5);
+}
+.button-xsmall {
+    font-size: 70%;
+}
+.controlTitle {
+    margin-top: 2px;
+}
