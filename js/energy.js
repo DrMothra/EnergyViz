@@ -3,7 +3,7 @@
  */
 
 //Globals
-var GROUND_DEPTH = 240;
+var GROUND_DEPTH = 10;
 var GROUND_WIDTH = 180;
 var SCREEN_WIDTH = 90;
 var SCREEN_HEIGHT = 40;
@@ -23,6 +23,32 @@ function eliminateDuplicates(arr) {
 
 var daysMonth = {'Jan':31, 'Feb':28, 'Mar':31, 'Apr':30, 'May':31, 'Jun':30,
     'Jul':31, 'Aug':31, 'Sep':30, 'Oct':31, 'Nov':30, 'Dec':31};
+
+var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu','Fri', 'Sat'];
+
+function daysPerMonth(month) {
+    return daysMonth[month];
+}
+
+function getNextDay(day) {
+    //Get next day of week
+    for(var i=0; i<dayNames.length; ++i) {
+        if(day == dayNames[i]) {
+            ++i;
+            return i<dayNames.length ? dayNames[i] : dayNames[0];
+        }
+    }
+}
+
+function getPreviousDay(day) {
+    //Get previous day of the week
+    for(var i=0; i<dayNames.length; ++i) {
+        if (day == dayNames[i]) {
+            --i;
+            return i < 0 ? dayNames[6] : dayNames[i];
+        }
+    }
+}
 
 function getDayName(date) {
     //Get name of day - always first 3 letters
@@ -104,7 +130,7 @@ EnergyApp.prototype.createScene = function() {
     var _this = this;
     this.modelLoader = new THREE.JSONLoader();
     //Create ground
-    addGroundPlane(this.scene, GROUND_WIDTH, GROUND_DEPTH);
+    addGround(this.scene, GROUND_WIDTH, GROUND_DEPTH);
     //Create screen
     this.modelLoader.load('models/screen.js', function(geom, materials) {
         var material = new THREE.MeshLambertMaterial(materials);
@@ -206,7 +232,6 @@ EnergyApp.prototype.generateData = function() {
 
     this.locationNames = [];
     this.maxOccupancy = [30, 345, 137, 105, 70];
-    this.dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu','Fri', 'Sat'];
     this.maxDays = 30;
 
     //Separate location names
@@ -253,11 +278,44 @@ EnergyApp.prototype.showNextTime = function() {
 };
 
 EnergyApp.prototype.showPreviousDay = function() {
+    //Construct previous day from current day
+    var dayName = getPreviousDay(this.dayName);
+    this.dayName = dayName;
+    if(this.date-1 < 1) return;
+    var date = --this.date;
+    var hour = this.hour;
+    var month = this.month;
+    var eventDate = dayName+' '+date+' '+month+' 2014 - '+hour+':00 - '+hour+':59';
+    console.log('Event date =', eventDate);
+    console.log('Event date =', eventDate);
+    for(var i=0; i<this.data.length; ++i) {
+        var item = this.data[i];
+        if(item['event_date'] == eventDate) {
+            populateInfoPanel(item);
+            populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+        }
+    }
+    console.log('No event at that time');
+};
+
+EnergyApp.prototype.showNextDay = function() {
     //Construct next day from current day
     var dayName = getNextDay(this.dayName);
+    this.dayName = dayName;
     var date = ++this.date;
     if(date > daysPerMonth(this.month)) return;
-    var hour = ++this.hour;
+    var hour = this.hour;
+    var month = this.month;
+    var eventDate = dayName+' '+date+' '+month+' 2014 - '+hour+':00 - '+hour+':59';
+    console.log('Event date =', eventDate);
+    for(var i=0; i<this.data.length; ++i) {
+        var item = this.data[i];
+        if(item['event_date'] == eventDate) {
+            populateInfoPanel(item);
+            populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+        }
+    }
+    console.log('No event at that time');
 };
 
 EnergyApp.prototype.onKeyDown = function(event) {
@@ -323,27 +381,27 @@ EnergyApp.prototype.onSelectFile = function(evt) {
         alert('sorry, file apis not supported');
 };
 
-function addGroundPlane(scene, width, height) {
-    // create the ground plane
-    var planeGeometry = new THREE.PlaneGeometry(width,height,1,1);
+function addGround(scene, width, height) {
+    //Create the ground object
+    var groundGeometry = new THREE.CylinderGeometry(width/2, width/2, height, 12, 12, false);
     var texture = THREE.ImageUtils.loadTexture("images/grid.png");
-    var planeMaterial = new THREE.MeshLambertMaterial({map: texture, transparent: true, opacity: 0.5});
-    var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+    var planeMaterial = new THREE.MeshLambertMaterial({color : 0x3C2D86});
+    var plane = new THREE.Mesh(groundGeometry, planeMaterial);
 
     //plane.receiveShadow  = true;
 
     // rotate and position the plane
-    plane.rotation.x=-0.5*Math.PI;
+    //plane.rotation.x=-0.5*Math.PI;
     plane.position.x=0;
-    plane.position.y=-59.9;
+    plane.position.y=-65;
     plane.position.z=0;
 
     scene.add(plane);
 
     //Second plane
-    planeGeometry = new THREE.PlaneGeometry(width, height, 1, 1);
+    groundGeometry = new THREE.PlaneGeometry(width, height, 1, 1);
     planeMaterial = new THREE.MeshLambertMaterial({color: 0x16283c});
-    plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane = new THREE.Mesh(groundGeometry, planeMaterial);
     plane.rotation.x=-0.5*Math.PI;
     plane.position.x=0;
     plane.position.y=-60;
@@ -352,7 +410,7 @@ function addGroundPlane(scene, width, height) {
     plane.name = 'ground';
 
     // add the plane to the scene
-    scene.add(plane);
+    //scene.add(plane);
 }
 
 function populateHall(group, geom, occupancy, maxOccupancy) {
