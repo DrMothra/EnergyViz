@@ -21,17 +21,42 @@ function eliminateDuplicates(arr) {
     return r;
 }
 
+var daysMonth = {'Jan':31, 'Feb':28, 'Mar':31, 'Apr':30, 'May':31, 'Jun':30,
+    'Jul':31, 'Aug':31, 'Sep':30, 'Oct':31, 'Nov':30, 'Dec':31};
+
+function getDayName(date) {
+    //Get name of day - always first 3 letters
+    return date.substr(0, 3);
+}
+
+function getDate(date) {
+    //Get day number - could be single or double figures
+    var day = date.substr(4, 2);
+    if(parseInt(day) < 10) {
+        day = date.substr(4, 1);
+    }
+    return day;
+}
+
+function getMonth(date) {
+    //Get month string
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    for(var i=0; i<months.length; ++i) {
+        if(date.indexOf(months[i]) >= 0) return months[i];
+    }
+
+    return null;
+}
+
+function getHour(date) {
+    //Get hour string
+    var hour = date.substr(17, 3);
+    return parseInt(hour);
+}
+
 //Init this app from base
 function EnergyApp() {
     BaseApp.call(this);
-}
-
-function getDate(timeDate) {
-    
-}
-
-function getTime(timeDate) {
-
 }
 
 EnergyApp.prototype = new BaseApp();
@@ -72,17 +97,27 @@ EnergyApp.prototype.createScene = function() {
     //Init base createsScene
     BaseApp.prototype.createScene.call(this);
 
+    //Model loading
+    this.occupancyGroup = new THREE.Object3D();
+    this.occupancyGroup.name = 'Occupancy';
+
+    var _this = this;
+    this.modelLoader = new THREE.JSONLoader();
     //Create ground
     addGroundPlane(this.scene, GROUND_WIDTH, GROUND_DEPTH);
     //Create screen
-    addCinemaScreen(this.scene, SCREEN_WIDTH, SCREEN_HEIGHT);
-    //DEBUG
-    var jsonLoader = new THREE.JSONLoader();
-    var _this = this;
-    jsonLoader.load('models/person.js', function(geom, material) {
-        var mat = new THREE.MeshLambertMaterial({color : 0x0000ff});
-        var obj = new THREE.Mesh(geom, mat);
-        _this.scene.add(obj);
+    this.modelLoader.load('models/screen.js', function(geom, materials) {
+        var material = new THREE.MeshLambertMaterial(materials);
+        var screen = new THREE.Mesh(geom, material);
+        screen.position.y = -40;
+        screen.scale.x = 1.25;
+        _this.scene.add(screen);
+    });
+
+    //Load models but don't add to scene yet
+    this.modelLoader.load('models/person2.js', function(geom, material) {
+        //Save geometry for later
+        _this.personGeom = geom;
     });
 };
 
@@ -157,12 +192,21 @@ EnergyApp.prototype.generateData = function() {
 EnergyApp.prototype.generateData = function() {
     //Extract data - do this manually for now
     var item = this.data[0];
-    this.currentLocation = item['hall_name'];
-    this.currentDate = getDate(item['event_date']);
-    this.currentTime = getTime(item['event_date']);
+    this.currentLocation = 0;
+    this.currentLocationName = item['hall_name'];
+    var dayName = getDayName(item['event_date']);
+    this.dayName = dayName;
+    var date = getDate(item['event_date']);
+    this.date = parseInt(date);
+    var month = getMonth(item['event_date']);
+    this.month = month;
+    var hour = getHour(item['event_date']);
+    console.log('Hour =', hour);
+    this.hour = hour;
+
     this.locationNames = [];
     this.maxOccupancy = [30, 345, 137, 105, 70];
-    this.days = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+    this.dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu','Fri', 'Sat'];
     this.maxDays = 30;
 
     //Separate location names
@@ -176,7 +220,8 @@ EnergyApp.prototype.generateData = function() {
     //Generate occupancy visuals
     var item = this.data[0];
     populateInfoPanel(item);
-    populateHall(this.scene, item['admits']);
+    populateHall(this.occupancyGroup, this.personGeom, item['admits'], this.maxOccupancy[0]);
+    this.scene.add(this.occupancyGroup);
 };
 
 EnergyApp.prototype.showPreviousLocation = function() {
@@ -185,6 +230,42 @@ EnergyApp.prototype.showPreviousLocation = function() {
 
 EnergyApp.prototype.showNextLocation = function() {
 
+};
+
+EnergyApp.prototype.showPreviousTime = function() {
+    //Go to previous time for selected location
+    if(this.currentLocation == 0) return;
+
+    var item = this.data[this.currentLocation-1];
+    if(item['hall_name'] != this.currentLocationName) return;
+    --this.currentLocation;
+    populateInfoPanel(item);
+    populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+};
+
+EnergyApp.prototype.showNextTime = function() {
+    //Go to next time for selected location
+    var item = this.data[this.currentLocation+1];
+    if(item['hall_name'] != this.currentLocationName) return;
+    ++this.currentLocation;
+    populateInfoPanel(item);
+    populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+};
+
+EnergyApp.prototype.showPreviousDay = function() {
+    //Construct next day from current day
+    var dayName = getNextDay(this.dayName);
+    var date = ++this.date;
+    if(date > daysPerMonth(this.month)) return;
+    var hour = ++this.hour;
+};
+
+EnergyApp.prototype.onKeyDown = function(event) {
+    switch (event.keyCode) {
+        case 80: //'P'
+            console.log("CamPos=", this.camera.position);
+            break;
+    }
 };
 
 EnergyApp.prototype.parseFile = function() {
@@ -274,32 +355,27 @@ function addGroundPlane(scene, width, height) {
     scene.add(plane);
 }
 
-function addCinemaScreen(scene, width, height) {
-    //Create screen - simple box for now
-    var screenGeometry = new THREE.BoxGeometry(width, height, 5, 4, 4, 4);
-    var screenMaterial = new THREE.MeshLambertMaterial({color : 0x660000});
-    var screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.y = -60 + (height/2);
+function populateHall(group, geom, occupancy, maxOccupancy) {
+    //Add number of people to location
+    if(group.children.length > 0) {
+        for (var child = group.children.length - 1; child >= 0; --child) {
+            group.remove(group.children[child]);
+        }
+    }
+    var occupyMaterial = new THREE.MeshLambertMaterial({color : 0x000066});
+    var surplusMaterial = new THREE.MeshLambertMaterial({color : 0xffffff});
 
-    scene.add(screen);
-}
-
-function populateHall(scene, people) {
-    //Add number of people to hall
-    var radius = 2;
-    var personGeometry = new THREE.SphereGeometry(radius, 12, 12);
-    var personMaterial = new THREE.MeshLambertMaterial({color : 0x000066});
-
-    var startPos = new THREE.Vector3(-30, -60 + radius, 30);
+    var startPos = new THREE.Vector3(-22.5, -56, 30);
+    var scale = new THREE.Vector3(1, 1, 1);
     var xInc = 5;
     var zInc = 5;
-    for(var i=0; i<people; ++i) {
-        var person = new THREE.Mesh(personGeometry, personMaterial);
-        person.position.x = startPos.x;
+    for(var i=0; i<maxOccupancy; ++i) {
+        var person = new THREE.Mesh(geom, i<occupancy ? occupyMaterial : surplusMaterial);
+        person.scale.set(scale.x, scale.y, scale.z);
+        person.position.x = startPos.x + (i%10 * xInc);
         person.position.y = startPos.y;
-        person.position.z = startPos.z;
-        scene.add(person);
-        startPos.x += xInc;
+        person.position.z = startPos.z + (parseInt(i/10)*zInc);
+        group.add(person);
     }
 }
 
@@ -388,7 +464,7 @@ $(document).ready(function() {
     var app = new EnergyApp();
     app.init(container);
     app.createScene();
-    app.createGUI();
+    //app.createGUI();
 
     //GUI callbacks
     $("#chooseFile").on("change", function(evt) {
@@ -400,6 +476,20 @@ $(document).ready(function() {
     $("#locationForward").on("click", function(evt) {
         app.showNextLocation();
     });
-
+    $("#timeBackward").on("click", function(evt) {
+        app.showPreviousTime();
+    });
+    $("#timeForward").on("click", function(evt) {
+        app.showNextTime();
+    });
+    $("#dateBackward").on("click", function(evt) {
+        app.showPreviousDay();
+    });
+    $("#dateForward").on("click", function(evt) {
+        app.showNextDay();
+    });
+    $(document).keydown(function (event) {
+        app.onKeyDown(event);
+    });
     app.run();
 });
