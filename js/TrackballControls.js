@@ -204,6 +204,16 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	}());
 
+    this.getLookAt = function() {
+        //Get lookat vector
+        return _this.target;
+    };
+
+    this.setLookAt = function(lookAt) {
+        //Set lookat vector
+        _this.target.copy(lookAt);
+    };
+
 	this.zoomCamera = function () {
 
 		if ( _state === STATE.TOUCH_ZOOM ) {

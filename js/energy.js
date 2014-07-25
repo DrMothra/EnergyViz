@@ -80,6 +80,28 @@ function getHour(date) {
     return parseInt(hour);
 }
 
+function getMaxOccupancy(name) {
+    //max occupancy at end of file
+    var max = name.indexOf('(');
+    if(max >= 0) {
+        return parseInt(name.substr(max+1, 3));
+    }
+
+    return -1;
+}
+
+function getOccupancyGroup(screenGroup) {
+    //Get occupancy group from given group
+    for(var i=0; i<screenGroup.children.length; ++i) {
+        if(screenGroup.children[i].name.indexOf('Occupancy') >=0) {
+            return screenGroup.children[i];
+            break;
+        }
+    }
+
+    return null;
+}
+
 //Init this app from base
 function EnergyApp() {
     BaseApp.call(this);
@@ -123,28 +145,47 @@ EnergyApp.prototype.createScene = function() {
     //Init base createsScene
     BaseApp.prototype.createScene.call(this);
 
+    this.screenGroups = [];
     //Model loading
-    this.occupancyGroup = new THREE.Object3D();
-    this.occupancyGroup.name = 'Occupancy';
-
+    //Load models but don't add to scene yet
     var _this = this;
     this.modelLoader = new THREE.JSONLoader();
-    //Create ground
-    addGround(this.scene, GROUND_WIDTH, GROUND_DEPTH);
-    //Create screen
-    this.modelLoader.load('models/screen.js', function(geom, materials) {
-        var material = new THREE.MeshLambertMaterial(materials);
-        var screen = new THREE.Mesh(geom, material);
-        screen.position.y = -40;
-        screen.scale.x = 1.25;
-        _this.scene.add(screen);
-    });
-
-    //Load models but don't add to scene yet
     this.modelLoader.load('models/person2.js', function(geom, material) {
         //Save geometry for later
         _this.personGeom = geom;
     });
+    //Create screen
+    this.modelLoader.load('models/screen.js', function(geom, materials) {
+        //Model loaded, create groups, etc.
+        _this.screenGeometry = geom;
+        var material = new THREE.MeshLambertMaterial(materials);
+        _this.screenMaterial = material;
+    });
+};
+
+EnergyApp.prototype.createEnvironment = function() {
+    //Create world structure
+    var xPos = [0, 95, 58.8, -58.8, -95];
+    var zPos = [100, 31, -81, -81, 31];
+    var scalingFactor = 1.5;
+    for(var i=0; i<this.locationNames.length; ++i) {
+        var group = new THREE.Object3D();
+        group.name = this.locationNames[i];
+        group.position.set(xPos[i], 0, zPos[i]);
+        group.position.multiplyScalar(scalingFactor);
+        this.screenGroups.push(group);
+        var occupancy = new THREE.Object3D();
+        occupancy.name = 'Occupancy' + group.name;
+        group.add(occupancy);
+        addGround(group, GROUND_WIDTH, GROUND_DEPTH);
+        //Add screen
+        var screen = new THREE.Mesh(this.screenGeometry, this.screenMaterial);
+        screen.name = 'Screen';
+        screen.scale.x = 1.25;
+        screen.position.y = -40;
+        group.add(screen);
+        this.scene.add(group);
+    }
 };
 
 EnergyApp.prototype.createGUI = function() {
@@ -153,7 +194,7 @@ EnergyApp.prototype.createGUI = function() {
         this.filename = '';
 
         //Colours
-        this.Ground = '#16283c';
+        this.Ground = '#1a2f46';
         this.Background = '#5c5f64';
     };
 
@@ -218,6 +259,7 @@ EnergyApp.prototype.generateData = function() {
 EnergyApp.prototype.generateData = function() {
     //Extract data - do this manually for now
     var item = this.data[0];
+    this.currentDataLocation = 0;
     this.currentLocation = 0;
     this.currentLocationName = item['hall_name'];
     var dayName = getDayName(item['event_date']);
@@ -231,9 +273,6 @@ EnergyApp.prototype.generateData = function() {
     this.hour = hour;
 
     this.locationNames = [];
-    this.maxOccupancy = [30, 345, 137, 105, 70];
-    this.maxDays = 30;
-
     //Separate location names
     for(var i=0; i<this.data.length; ++i) {
         item = this.data[i];
@@ -242,11 +281,50 @@ EnergyApp.prototype.generateData = function() {
     //Remove duplicates
     this.locationNames = eliminateDuplicates(this.locationNames);
 
+    //Get max occupancy from group name
+    this.maxOccupancy = [];
+    for(var i=0; i<this.locationNames.length; ++i) {
+        var max = getMaxOccupancy(this.locationNames[i]);
+        if(max > 0) {
+            this.maxOccupancy.push(max);
+        }
+    }
+
     //Generate occupancy visuals
+    this.createEnvironment();
+
     var item = this.data[0];
     populateInfoPanel(item);
-    populateHall(this.occupancyGroup, this.personGeom, item['admits'], this.maxOccupancy[0]);
-    this.scene.add(this.occupancyGroup);
+    //Set current group
+    var screenGroup = this.screenGroups[this.currentLocation];
+    var occupyGroup = getOccupancyGroup(screenGroup);
+
+    populateHall(occupyGroup, this.personGeom, item['admits'], this.maxOccupancy[0]);
+};
+
+EnergyApp.prototype.findDate = function(dayName, day, month, hour) {
+    //Construct date and find in data
+    var eventDate = dayName+' '+day+' '+month+' 2014 - '+hour+':00 - '+hour+':59';
+    for(var i=0; i<this.data.length; ++i) {
+        var item = this.data[i];
+        if(item['event_date'] == eventDate) {
+            return item;
+        }
+    }
+
+    return null;
+};
+
+EnergyApp.prototype.getLocation = function(item) {
+    //Get location of item within data
+    for(var i=0; i<this.data.length; ++i) {
+        var obj = this.data[i];
+        if(obj == item) {
+            return i;
+        }
+    }
+
+    return null;
 };
 
 EnergyApp.prototype.showPreviousLocation = function() {
@@ -259,69 +337,101 @@ EnergyApp.prototype.showNextLocation = function() {
 
 EnergyApp.prototype.showPreviousTime = function() {
     //Go to previous time for selected location
-    if(this.currentLocation == 0) return;
+    if(this.currentDataLocation == 0) return;
 
-    var item = this.data[this.currentLocation-1];
+    var item = this.data[this.currentDataLocation-1];
     if(item['hall_name'] != this.currentLocationName) return;
-    --this.currentLocation;
+
+    --this.currentDataLocation;
+    //Update all date variables
+    var date = item['event_date'];
+    this.dayName = getDayName(date);
+    this.date = parseInt(getDate(date));
+    this.hour = parseInt(getHour(date));
     populateInfoPanel(item);
-    populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+    //Set current group
+    var screenGroup = this.screenGroups[this.currentLocation];
+    var occupyGroup = getOccupancyGroup(screenGroup);
+    populateHall(occupyGroup, this.personGeom, item['admits'], 30);
 };
 
 EnergyApp.prototype.showNextTime = function() {
     //Go to next time for selected location
-    var item = this.data[this.currentLocation+1];
+    var item = this.data[this.currentDataLocation+1];
     if(item['hall_name'] != this.currentLocationName) return;
-    ++this.currentLocation;
+
+    ++this.currentDataLocation;
+    //Update all date variables
+    var date = item['event_date'];
+    this.dayName = getDayName(date);
+    this.date = parseInt(getDate(date));
+    this.hour = parseInt(getHour(date));
     populateInfoPanel(item);
-    populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
+    //Set current group
+    var screenGroup = this.screenGroups[this.currentLocation];
+    var occupyGroup = getOccupancyGroup(screenGroup);
+    populateHall(occupyGroup, this.personGeom, item['admits'], 30);
 };
 
 EnergyApp.prototype.showPreviousDay = function() {
     //Construct previous day from current day
-    var dayName = getPreviousDay(this.dayName);
-    this.dayName = dayName;
     if(this.date-1 < 1) return;
-    var date = --this.date;
+
+    var date = this.date-1;
     var hour = this.hour;
     var month = this.month;
-    var eventDate = dayName+' '+date+' '+month+' 2014 - '+hour+':00 - '+hour+':59';
-    console.log('Event date =', eventDate);
-    console.log('Event date =', eventDate);
-    for(var i=0; i<this.data.length; ++i) {
-        var item = this.data[i];
-        if(item['event_date'] == eventDate) {
-            populateInfoPanel(item);
-            populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
-        }
+    var dayName = getPreviousDay(this.dayName);
+
+    var item = this.findDate(dayName, date, month, hour);
+    if(item != null) {
+        //Only display data for this location
+        if(item['hall_name'] != this.currentLocationName) return;
+        //Update date info
+        this.dayName = dayName;
+        --this.date;
+        this.currentDataLocation = this.getLocation(item);
+        populateInfoPanel(item);
+        //Set current group
+        var screenGroup = this.screenGroups[this.currentLocation];
+        var occupyGroup = getOccupancyGroup(screenGroup);
+        populateHall(occupyGroup, this.personGeom, item['admits'], 30);
+    } else {
+        console.log('No data for that event');
     }
-    console.log('No event at that time');
 };
 
 EnergyApp.prototype.showNextDay = function() {
     //Construct next day from current day
+    if(this.date+1 > daysPerMonth(this.month)) return;
+
+    var date = this.date+1;
     var dayName = getNextDay(this.dayName);
-    this.dayName = dayName;
-    var date = ++this.date;
-    if(date > daysPerMonth(this.month)) return;
     var hour = this.hour;
     var month = this.month;
-    var eventDate = dayName+' '+date+' '+month+' 2014 - '+hour+':00 - '+hour+':59';
-    console.log('Event date =', eventDate);
-    for(var i=0; i<this.data.length; ++i) {
-        var item = this.data[i];
-        if(item['event_date'] == eventDate) {
-            populateInfoPanel(item);
-            populateHall(this.occupancyGroup, this.personGeom, item['admits'], 30);
-        }
+
+    var item = this.findDate(dayName, date, month, hour);
+    if(item != null) {
+        //Only display data for this location
+        if(item['hall_name'] != this.currentLocationName) return;
+        //Update date info
+        this.dayName = dayName;
+        ++this.date;
+        this.currentDataLocation = this.getLocation(item);
+        populateInfoPanel(item);
+        //Set current group
+        var screenGroup = this.screenGroups[this.currentLocation];
+        var occupyGroup = getOccupancyGroup(screenGroup);
+        populateHall(occupyGroup, this.personGeom, item['admits'], 30);
+    } else {
+        console.log('No data for that event');
     }
-    console.log('No event at that time');
 };
 
 EnergyApp.prototype.onKeyDown = function(event) {
     switch (event.keyCode) {
         case 80: //'P'
             console.log("CamPos=", this.camera.position);
+            console.log("Lookat=", this.controls.getLookAt());
             break;
     }
 };
@@ -381,13 +491,14 @@ EnergyApp.prototype.onSelectFile = function(evt) {
         alert('sorry, file apis not supported');
 };
 
-function addGround(scene, width, height) {
+function addGround(group, width, height) {
     //Create the ground object
     var groundGeometry = new THREE.CylinderGeometry(width/2, width/2, height, 12, 12, false);
     var texture = THREE.ImageUtils.loadTexture("images/grid.png");
-    var planeMaterial = new THREE.MeshLambertMaterial({color : 0x3C2D86});
+    var planeMaterial = new THREE.MeshLambertMaterial({color : 0x1a2f46});
     var plane = new THREE.Mesh(groundGeometry, planeMaterial);
-
+    //Give it a name
+    plane.name = 'ground';
     //plane.receiveShadow  = true;
 
     // rotate and position the plane
@@ -396,7 +507,7 @@ function addGround(scene, width, height) {
     plane.position.y=-65;
     plane.position.z=0;
 
-    scene.add(plane);
+    group.add(plane);
 
     //Second plane
     groundGeometry = new THREE.PlaneGeometry(width, height, 1, 1);
@@ -522,7 +633,7 @@ $(document).ready(function() {
     var app = new EnergyApp();
     app.init(container);
     app.createScene();
-    //app.createGUI();
+    app.createGUI();
 
     //GUI callbacks
     $("#chooseFile").on("change", function(evt) {
