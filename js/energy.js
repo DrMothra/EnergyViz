@@ -117,10 +117,18 @@ EnergyApp.prototype.init = function(container) {
     this.dataFile = null;
     this.filename = '';
     this.objectsRendered = 0;
+    //Animation
+    this.totalDelta = 0;
+    this.startRot;
+    this.rotInc = Math.PI/180 * 72;
+    this.animate = false;
+    this.animating = false;
+    this.animationTime = 2;
 };
 
 EnergyApp.prototype.update = function() {
     //Perform any updates
+    var delta = this.clock.getDelta();
     var clicked = this.mouse.clicked;
 
     //Perform mouse hover
@@ -138,12 +146,27 @@ EnergyApp.prototype.update = function() {
 
         }
     }
+
+    //Animation
+    if(this.animating) {
+        this.root.rotation.y += (delta/this.animationTime) * this.rotInc;
+        this.totalDelta += delta;
+        if(this.totalDelta >= this.animationTime) {
+            this.animating = false;
+            this.totalDelta = 0;
+            this.root.rotation.y = this.startRot + this.rotInc;
+        }
+    }
     BaseApp.prototype.update.call(this);
 };
 
 EnergyApp.prototype.createScene = function() {
     //Init base createsScene
     BaseApp.prototype.createScene.call(this);
+
+    this.root = new THREE.Object3D();
+    this.root.name = 'root';
+    this.scene.add(this.root);
 
     this.screenGroups = [];
     //Model loading
@@ -167,6 +190,7 @@ EnergyApp.prototype.createEnvironment = function() {
     //Create world structure
     var xPos = [0, 95, 58.8, -58.8, -95];
     var zPos = [100, 31, -81, -81, 31];
+    var screenName = ['Lounge', 'Screen1', 'Screen2', 'Screen3', 'Screen4'];
     var scalingFactor = 1.5;
     for(var i=0; i<this.locationNames.length; ++i) {
         var group = new THREE.Object3D();
@@ -183,8 +207,14 @@ EnergyApp.prototype.createEnvironment = function() {
         screen.name = 'Screen';
         screen.scale.x = 1.25;
         screen.position.y = -40;
+        screen.rotation.y = this.rotInc * i;
         group.add(screen);
-        this.scene.add(group);
+        var title = createScreenTitle(screenName[i]);
+        title.position.y = -27.5;
+        title.rotation.y = screen.rotation.y;
+        occupancy.rotation.y = screen.rotation.y;
+        group.add(title);
+        this.root.add(group);
     }
 };
 
@@ -328,11 +358,70 @@ EnergyApp.prototype.getLocation = function(item) {
 };
 
 EnergyApp.prototype.showPreviousLocation = function() {
+    //Rotate screen structures
+    this.startRot = this.root.rotation.y;
+    if(this.rotInc < 0) this.rotInc *= -1;
+    this.animating = true;
 
+    //Get data for previous location
+    if(--this.currentLocation < 0) this.currentLocation = this.screenGroups.length-1;
+    this.currentLocationName = this.locationNames[this.currentLocation];
+
+    //Construct date
+    var eventDate = this.dayName+' '+this.date+' '+this.month+' 2014 - '+this.hour+':00 - '+this.hour+':59';
+    //Update current variables to something sensible
+    //even if no exact match
+    var resetPoint = -1;
+    for(var i=0; i<this.data.length; ++i) {
+        var item = this.data[i];
+        if(item['hall_name'] == this.currentLocationName) {
+            //We may need this later
+            if(resetPoint < 0) resetPoint = i;
+            if(item['event_date'] == eventDate) {
+                populateInfoPanel(item);
+                this.currentDataLocation = i;
+                return;
+            }
+        }
+    }
+    //Didn't find exact match
+    //Set data pointers to sensible position
+    this.currentDataLocation = resetPoint;
+    console.log('No data for that date');
 };
 
 EnergyApp.prototype.showNextLocation = function() {
+    //Rotate screen structures
+    this.startRot = this.root.rotation.y;
+    if(this.rotInc > 0) this.rotInc *= -1;
+    this.animating = true;
 
+    //Get data for next location
+    if(++this.currentLocation >= this.screenGroups.length) this.currentLocation = 0;
+    this.currentLocationName = this.locationNames[this.currentLocation];
+
+    //Construct date
+    var eventDate = this.dayName+' '+this.date+' '+this.month+' 2014 - '+this.hour+':00 - '+this.hour+':59';
+    console.log('Date = ', eventDate);
+    //Update current variables to something sensible
+    //even if no exact match
+    var resetPoint = -1;
+    for(var i=0; i<this.data.length; ++i) {
+        var item = this.data[i];
+        if(item['hall_name'] == this.currentLocationName) {
+            //we may need this later
+            if(resetPoint < 0) resetPoint = i;
+            if(item['event_date'] == eventDate) {
+                populateInfoPanel(item);
+                this.currentDataLocation = i;
+                return;
+            }
+        }
+    }
+    //Didn't find exact match
+    //Set data pointers to sensible position
+    this.currentDataLocation = resetPoint;
+    console.log('No data for that date');
 };
 
 EnergyApp.prototype.showPreviousTime = function() {
@@ -546,6 +635,40 @@ function populateHall(group, geom, occupancy, maxOccupancy) {
         person.position.z = startPos.z + (parseInt(i/10)*zInc);
         group.add(person);
     }
+}
+
+function createScreenTitle(title) {
+    //Create rectangle with given text
+    var rectGeom = new THREE.PlaneGeometry(20, 6, 4, 4);
+
+    var fontface = "Arial";
+    var fontSize = 12;
+    var spacing = 10;
+
+    var canvas = document.createElement('canvas');
+    var context = canvas.getContext('2d');
+    var metrics = context.measureText( title );
+    var textWidth = metrics.width;
+
+    canvas.width = textWidth + (spacing * 2);
+    canvas.width *= 2;
+    canvas.height = fontSize;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+
+    context.fillStyle = "rgba(255, 115, 41, 1.0)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = "rgba(255, 255, 255, 1.0)";
+    context.font = fontSize + "px " + fontface;
+
+    context.fillText(title, canvas.width/2, canvas.height/2);
+    // canvas contents will be used for a texture
+    var texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+
+    var rectMaterial = new THREE.MeshLambertMaterial({map : texture});
+    return new THREE.Mesh(rectGeom, rectMaterial);
 }
 
 function populateInfoPanel(data) {
