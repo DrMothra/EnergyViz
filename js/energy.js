@@ -125,10 +125,13 @@ EnergyApp.prototype.init = function(container) {
     //Animation
     this.totalDelta = 0;
     this.startRot;
+    this.startPos;
     this.rotInc = Math.PI/180 * 72;
+    this.posInc = 10;
     this.animate = false;
     this.animating = false;
     this.animationTime = 2;
+    this.animationGroup;
 };
 
 EnergyApp.prototype.update = function() {
@@ -155,11 +158,14 @@ EnergyApp.prototype.update = function() {
     //Animation
     if(this.animating) {
         this.root.rotation.y += (delta/this.animationTime) * this.rotInc;
+        this.animationGroup.position.y -= (delta/this.animationTime) * this.posInc;
         this.totalDelta += delta;
         if(this.totalDelta >= this.animationTime) {
             this.animating = false;
             this.totalDelta = 0;
             this.root.rotation.y = this.startRot + this.rotInc;
+            this.animationGroup.position.y = this.startPos - this.posInc;
+            hideGroup(this.animationGroup);
         }
     }
     BaseApp.prototype.update.call(this);
@@ -232,7 +238,9 @@ EnergyApp.prototype.createEnvironment = function() {
     occupancyGroup = {'occupancyScale' : occupancyScale, 'occupancyPerRow' : occupancyPerRow, 'startPos' : startPos, 'increments' : increments};
     occupancies.push(occupancyGroup);
 
+    var dataTexture = THREE.ImageUtils.loadTexture("images/noData.png");
     var emptyMaterial = new THREE.MeshLambertMaterial({color : 0xffffff});
+    var dataMaterial = new THREE.MeshLambertMaterial({map : dataTexture, transparent : true});
     for(var i=0; i<this.locationNames.length; ++i) {
         var group = new THREE.Object3D();
         group.name = this.locationNames[i];
@@ -261,10 +269,10 @@ EnergyApp.prototype.createEnvironment = function() {
             occupancy.add(person);
         }
         //Add indication for no data available
-        var unknownGeom = new THREE.PlaneGeometry(20, 5);
-        var unknown = new THREE.Mesh(unknownGeom, emptyMaterial);
+        var unknownGeom = new THREE.PlaneGeometry(10, 10);
+        var unknown = new THREE.Mesh(unknownGeom, dataMaterial);
         unknown.name = 'noData';
-        unknown.position.set(0, -60, 0);
+        unknown.position.set(0, -55, 0);
         unknown.visible = false;
         occupancy.add(unknown);
         group.add(occupancy);
@@ -297,6 +305,7 @@ EnergyApp.prototype.createGUI = function() {
 
     //Create GUI
     var gui = new dat.GUI();
+
     var _this = this;
     //Create two folders - Appearance and Data
     gui.add(this.guiControls, 'filename', this.filename).listen();
@@ -425,10 +434,14 @@ EnergyApp.prototype.showPreviousLocation = function() {
     this.startRot = this.root.rotation.y;
     if(this.rotInc < 0) this.rotInc *= -1;
     this.animating = true;
+    this.animationGroup = getOccupancyGroup(this.screenGroups[this.currentLocation]);
 
     //Get data for previous location
     if(--this.currentLocation < 0) this.currentLocation = this.screenGroups.length-1;
     this.currentLocationName = this.locationNames[this.currentLocation];
+
+    var screenGroup = this.screenGroups[this.currentLocation];
+    var occGroup = getOccupancyGroup(screenGroup);
 
     console.log('Location =', this.currentLocationName);
 
@@ -445,7 +458,9 @@ EnergyApp.prototype.showPreviousLocation = function() {
             if(item['event_date'] == eventDate) {
                 //Update information
                 populateInfoPanel(item);
-                populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+                //showGroup(occGroup);
+                occGroup.position.set(0, 0, 0);
+                populateHall(screenGroup, this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
                 this.currentDataLocation = i;
                 return;
             }
@@ -460,8 +475,11 @@ EnergyApp.prototype.showPreviousLocation = function() {
     data['occupancy'] = -1;
     //Update information
     populateInfoPanel(data);
-    populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
-    console.log('No data for that date');
+    //showGroup(occGroup);
+    occGroup.position.set(0, 0, 0);
+    populateHall(screenGroup, this.personGeom, -1, -1);
+    //Animate occupancy group
+    this.startPos = this.animationGroup.position.y;
 };
 
 EnergyApp.prototype.showNextLocation = function() {
@@ -469,11 +487,14 @@ EnergyApp.prototype.showNextLocation = function() {
     this.startRot = this.root.rotation.y;
     if(this.rotInc > 0) this.rotInc *= -1;
     this.animating = true;
+    this.animationGroup = getOccupancyGroup(this.screenGroups[this.currentLocation]);
 
     //Get data for next location
     if(++this.currentLocation >= this.screenGroups.length) this.currentLocation = 0;
     this.currentLocationName = this.locationNames[this.currentLocation];
 
+    var screenGroup = this.screenGroups[this.currentLocation];
+    var occGroup = getOccupancyGroup(screenGroup);
     console.log('Location =', this.currentLocationName);
 
     //Construct date
@@ -490,8 +511,8 @@ EnergyApp.prototype.showNextLocation = function() {
             if(item['event_date'] == eventDate) {
                 //Update info
                 populateInfoPanel(item);
-                clearGroups(this.screenGroups);
-                populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+                occGroup.position.set(0, 0, 0);
+                populateHall(screenGroup, this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
                 this.currentDataLocation = i;
                 return;
             }
@@ -506,8 +527,10 @@ EnergyApp.prototype.showNextLocation = function() {
     data['occupancy'] = -1;
     //Update info
     populateInfoPanel(data);
-    populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
-    console.log('No data for that date');
+    occGroup.position.set(0, 0, 0);
+    populateHall(screenGroup, this.personGeom, -1, -1);
+    //Animate occupancy group
+    this.startPos = this.animationGroup.position.y;
 };
 
 EnergyApp.prototype.showPreviousTime = function() {
@@ -720,7 +743,7 @@ function populateHall(group, geom, occupancy, maxOccupancy) {
             }
         });
     } else {
-        for(var i=0; i<occupyGroup.children.length; ++i) {
+        for(var i=0; i<maxOccupancy; ++i) {
             var child = occupyGroup.children[i];
             child.material = i<occupancy ? occupyMaterial : surplusMaterial;
             child.visible = true;
@@ -732,16 +755,22 @@ function populateHall(group, geom, occupancy, maxOccupancy) {
     }
 }
 
-function clearGroups(groups) {
-    //Make all occupancy groups invisible
-    for(var i=0; i<groups.length; ++i) {
-        var currentGroup = groups[i];
-        currentGroup.traverse(function(obj) {
-            if(obj instanceof THREE.Mesh) {
-                obj.visible = false;
-            }
-        });
-    }
+function hideGroup(group) {
+    //Make all occupants of group invisible
+    group.traverse(function(obj) {
+        if(obj instanceof THREE.Mesh) {
+            obj.visible = false;
+        }
+    });
+}
+
+function showGroup(group) {
+    //Make all occupants of group visible
+    group.traverse(function(obj) {
+        if(obj instanceof THREE.Mesh) {
+            obj.visible = true;
+        }
+    });
 }
 
 function createScreenTitle(title) {
@@ -863,7 +892,7 @@ $(document).ready(function() {
     var app = new EnergyApp();
     app.init(container);
     app.createScene();
-    app.createGUI();
+    //app.createGUI();
 
     //GUI callbacks
     $("#chooseFile").on("change", function(evt) {

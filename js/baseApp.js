@@ -8,6 +8,7 @@ function BaseApp() {
     this.scene = null;
     this.camera = null;
     this.controls = null;
+    this.stats = null;
     this.container = null;
     this.projector = null;
     this.objectList = [];
@@ -28,6 +29,7 @@ BaseApp.prototype.init = function(container) {
     this.createCamera();
     this.createControls();
     this.projector = new THREE.Projector();
+    this.stats = initStats();
 };
 
 BaseApp.prototype.createRenderer = function() {
@@ -122,5 +124,22 @@ BaseApp.prototype.run = function(timestamp) {
     this.renderer.render( this.scene, this.camera );
     var self = this;
     this.update();
+    this.stats.update();
     requestAnimationFrame(function(timestamp) { self.run(timestamp); });
 };
+
+function initStats() {
+
+    var stats = new Stats();
+
+    stats.setMode(0); // 0: fps, 1: ms
+
+    // Align top-left
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = '0px';
+    stats.domElement.style.top = '0px';
+
+    $("#Stats-output").append( stats.domElement );
+
+    return stats;
+}
