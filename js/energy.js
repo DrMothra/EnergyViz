@@ -758,6 +758,9 @@ EnergyApp.prototype.showNextDay = function() {
 };
 
 EnergyApp.prototype.onKeyDown = function(event) {
+    //Do any base app key handling
+    BaseApp.prototype.keydown.call(this, event);
+
     switch (event.keyCode) {
         case 80: //'P'
             console.log("CamPos=", this.camera.position);

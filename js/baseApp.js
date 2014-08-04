@@ -30,6 +30,7 @@ BaseApp.prototype.init = function(container) {
     this.createControls();
     this.projector = new THREE.Projector();
     this.stats = initStats();
+    this.statsShowing = true;
 };
 
 BaseApp.prototype.createRenderer = function() {
@@ -46,6 +47,23 @@ BaseApp.prototype.createRenderer = function() {
     this.container.addEventListener('mousemove', function(event) {
         _this.mouseMoved(event);
     }, false);
+};
+
+BaseApp.prototype.keydown = function(event) {
+    //Key press functionality
+    switch(event.keyCode) {
+        case 83: //'S'
+            if (this.stats) {
+                if (this.statsShowing) {
+                    $("#Stats-output").hide();
+                    this.statsShowing = false;
+                } else {
+                    $("#Stats-output").show();
+                    this.statsShowing = true;
+                }
+            }
+            break;
+    }
 };
 
 BaseApp.prototype.mouseClicked = function(event) {
