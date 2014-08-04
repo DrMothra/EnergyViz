@@ -26,6 +26,10 @@ var daysMonth = {'Jan':31, 'Feb':28, 'Mar':31, 'Apr':30, 'May':31, 'Jun':30,
 
 var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu','Fri', 'Sat'];
 
+function getHoursFromStart(date, hour) {
+    return (date-1)*24 + hour;
+}
+
 function daysPerMonth(month) {
     return daysMonth[month];
 }
@@ -353,9 +357,30 @@ EnergyApp.prototype.createEnvironment = function() {
 
     var lineMesh = new THREE.Line( geometry, material );
     var lineDataGroup = new THREE.Object3D();
+    lineDataGroup.name = 'lineData';
+    lineDataGroup.position.x = -139;
     lineDataGroup.add(lineMesh);
+    this.scene.add(lineDataGroup);
 
-    this.root.add(lineDataGroup);
+    //Time line
+    var timeGeom = new THREE.BufferGeometry();
+    var timeMat = new THREE.LineBasicMaterial({ color : 0xFF3CB3});
+    var scalePosition = new Float32Array(6);
+    var scaleStart = new THREE.Vector3(0, 0, 0);
+    var scaleEnd = new THREE.Vector3(0, 30, 0);
+    scalePosition[0] = scaleStart.x;
+    scalePosition[1] = scaleStart.y;
+    scalePosition[2] = scaleStart.z;
+    scalePosition[3] = scaleEnd.x;
+    scalePosition[4] = scaleEnd.y;
+    scalePosition[5] = scaleEnd.z;
+    timeGeom.addAttribute('position', new THREE.BufferAttribute(scalePosition, 3));
+    timeGeom.computeBoundingSphere();
+
+    var timeLine = new THREE.Line(timeGeom, timeMat);
+    timeLine.name = 'timeLine';
+
+    this.scene.add(timeLine);
 };
 
 EnergyApp.prototype.createGUI = function() {
@@ -614,6 +639,13 @@ EnergyApp.prototype.showPreviousTime = function() {
     populateInfoPanel(item);
     //Update info
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+
+    //Update timeline
+    var hours = getHoursFromStart(this.date, this.hour);
+    var timeLine = this.scene.getObjectByName('lineData');
+    if(timeLine) {
+        timeLine.position.x = -hours;
+    }
 };
 
 EnergyApp.prototype.showNextTime = function() {
@@ -630,6 +662,13 @@ EnergyApp.prototype.showNextTime = function() {
     populateInfoPanel(item);
     //Update info
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+
+    //Update timeline
+    var hours = getHoursFromStart(this.date, this.hour);
+    var timeLine = this.scene.getObjectByName('lineData');
+    if(timeLine) {
+        timeLine.position.x = -hours;
+    }
 };
 
 EnergyApp.prototype.showPreviousDay = function() {
@@ -650,6 +689,12 @@ EnergyApp.prototype.showPreviousDay = function() {
             this.currentDataLocation = this.getLocation(item);
             populateInfoPanel(item);
             populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+            //Update timeline
+            var hours = getHoursFromStart(this.date, this.hour);
+            var timeLine = this.scene.getObjectByName('lineData');
+            if(timeLine) {
+                timeLine.position.x = -hours;
+            }
             return;
         }
     }
@@ -661,6 +706,12 @@ EnergyApp.prototype.showPreviousDay = function() {
     //Update info
     populateInfoPanel(data);
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
+    //Update timeline
+    var hours = getHoursFromStart(this.date, this.hour);
+    var timeLine = this.scene.getObjectByName('lineData');
+    if(timeLine) {
+        timeLine.position.x = -hours;
+    }
 };
 
 EnergyApp.prototype.showNextDay = function() {
@@ -681,6 +732,12 @@ EnergyApp.prototype.showNextDay = function() {
             this.currentDataLocation = this.getLocation(item);
             populateInfoPanel(item);
             populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
+            //Update timeline
+            var hours = getHoursFromStart(this.date, this.hour);
+            var timeLine = this.scene.getObjectByName('lineData');
+            if(timeLine) {
+                timeLine.position.x = -hours;
+            }
             return;
         }
     }
@@ -692,6 +749,12 @@ EnergyApp.prototype.showNextDay = function() {
     //Update info
     populateInfoPanel(data);
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
+    //Update timeline
+    var hours = getHoursFromStart(this.date, this.hour);
+    var timeLine = this.scene.getObjectByName('lineData');
+    if(timeLine) {
+        timeLine.position.x = -hours;
+    }
 };
 
 EnergyApp.prototype.onKeyDown = function(event) {
