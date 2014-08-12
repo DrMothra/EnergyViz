@@ -126,16 +126,17 @@ EnergyApp.prototype.init = function(container) {
     this.dataFile = null;
     this.filename = '';
     this.objectsRendered = 0;
+    this.showData = false;
     //Animation
     this.totalDelta = 0;
-    this.startRot;
-    this.startPos;
+    this.startRot = 0;
+    this.startPos = 0;
     this.rotInc = Math.PI/180 * 72;
     this.posInc = 10;
     this.animate = false;
     this.animating = false;
     this.animationTime = 2;
-    this.animationGroup;
+    this.animationGroup = null;
 };
 
 EnergyApp.prototype.update = function() {
@@ -297,7 +298,7 @@ EnergyApp.prototype.createEnvironment = function() {
     }
 
     //Add line graph data
-    var lineData = {"Domain": "(null)", "Reference": "(null)", "Version": "(null)", "ts": "2014-06", "Log Program Version": "2", "Coverage": "(null)", "reading units": "kW",
+    var lineData12 = {"Domain": "(null)", "Reference": "(null)", "Version": "(null)", "ts": "2014-06", "Log Program Version": "2", "Coverage": "(null)", "reading units": "kW",
         "data": {"start": 1401577200000, "step": 3600000, "readings": [
         0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0331, 0.0329, 0.0329, 0.0330, 0.0329, 0.0331, 0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329,
         0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0330, 0.0329, 0.0332, 0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0330, 0.0329, 0.0329,
@@ -332,42 +333,119 @@ EnergyApp.prototype.createEnvironment = function() {
         2.1716, 1.7669, 1.9412, 1.9599, 1.0416, 0.2586, 0.2901, 0.2306, 0.2324, 0.2345, 2.3392, 2.3216, 2.9079, 0.4151, 0.2621, 0.2638, 0.2604, 0.4323, 0.4843, 0.4805, 0.4940, 1.2494, 1.5038,
         1.9453, 2.0095, 1.8280, 1.9246, 1.9482, 0.3303, 0.1930]}};
 
-    var numPoints = lineData.data.readings.length;
-    var geometry = new THREE.BufferGeometry();
-    var material = new THREE.LineBasicMaterial({ color : 0xffffff });
+    var lineData11 = {"Domain": "(null)", "Reference": "(null)", "Version": "(null)", "ts": "2014-06", "Log Program Version": "2", "Coverage": "(null)", "reading units": "kW",
+        "data": {"start": 1401577200000, "step": 3600000, "readings": [
+        0.0342, 0.0345, 0.0331, 0.0329, 0.0329, 0.0331, 0.0329, 0.0336, 0.0361, 0.0363, 0.0356, 0.0336, 0.0330, 0.0331, 0.0330, 0.0330, 0.0331, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0329,
+        0.0331, 0.0329, 0.0329, 0.0329, 0.0329, 0.0331, 0.0334, 0.0334, 0.0335, 0.0331, 0.0330, 0.0334, 0.0334, 0.0331, 0.0329, 0.0333, 0.0336, 0.0329, 0.0329, 0.0330, 0.0329, 0.0329, 0.0329,
+        0.0329, 0.0329, 0.0331, 0.0334, 0.0330, 0.0329, 0.0332, 0.0342, 0.0330, 0.0329, 0.0331, 0.0333, 0.0000, 0.7633, 1.2714, 1.1198, 1.1218, 1.3730, 2.0717, 1.8783, 2.0044, 2.0666, 2.0172,
+        2.0183, 1.0924, 0.5128, 0.5131, 0.5080, 0.5074, 0.5023, 0.9150, 0.7092, 0.5304, 0.5165, 0.5203, 0.5472, 0.5255, 0.5506, 0.5580, 0.5462, 0.5592, 0.5444, 0.6487, 1.7026, 2.0146, 1.7868,
+        2.0417, 2.0837, 1.4409, 1.2257, 1.1119, 1.1163, 1.1286, 1.1333, 1.1504, 1.1243, 0.6863, 0.5052, 0.5249, 0.9712, 2.0175, 2.0217, 1.1876, 1.9820, 2.0269, 1.1469, 1.1388, 1.6715, 2.0298,
+        1.7220, 2.0412, 2.0490, 0.6670, 0.5204, 0.5015, 0.5047, 0.5044, 0.5912, 1.1409, 1.1270, 1.1230, 1.1168, 0.7345, 0.7674, 0.8372, 0.8703, 0.8236, 0.8855, 0.9368, 2.1137, 2.1187, 1.7879,
+        2.1248, 1.7439, 2.0918, 2.1035, 1.2249, 0.6399, 0.5556, 0.5141, 0.5100, 0.5048, 0.6414, 0.5222, 0.5166, 0.5077, 0.5453, 0.5423, 0.5519, 0.5618, 1.0312, 1.7381, 2.0526, 1.8430, 1.5401,
+        2.2890, 2.1608, 2.2372, 2.0623, 2.1162, 1.2724, 0.5647, 0.5414, 0.5177, 0.5088, 0.5129, 0.5262, 0.5252, 0.5313, 0.8746, 0.5382, 0.5454, 0.5481, 1.3574, 2.0833, 2.0185, 1.2048, 2.1618,
+        2.1587, 1.7535, 2.1321, 1.7178, 2.1049, 2.0564, 0.6589, 0.5169, 0.5125, 0.5090, 0.5129, 0.5075, 1.0860, 1.1260, 0.6461, 0.5236, 0.5312, 1.2278, 1.3570, 1.2839, 1.1275, 1.1119, 1.1378,
+        1.1722, 1.1431, 1.6779, 2.0791, 1.7474, 2.0511, 2.0458, 0.7507, 0.5132, 0.5075, 0.5076, 0.5169, 0.5183, 0.9902, 0.7603, 0.5650, 0.5440, 0.6454, 0.6007, 0.6014, 0.6228, 0.6109, 0.6018,
+        0.6224, 0.6533, 0.8250, 1.7410, 2.0584, 1.7470, 2.0441, 2.0173, 0.6560, 0.4912, 0.4791, 0.4825, 0.4854, 0.4802, 1.0501, 1.0683, 1.0659, 1.0808, 1.0776, 1.4428, 1.9938, 2.0703, 1.7266,
+        1.0506, 0.6228, 0.5356, 0.5300, 1.5375, 2.0358, 1.7042, 1.9854, 1.9873, 0.8299, 0.7057, 0.7024, 0.7073, 0.7024, 0.6969, 1.0354, 1.0665, 0.6226, 0.4734, 0.6234, 1.1284, 1.9745, 1.8179,
+        1.1589, 1.9622, 1.8634, 1.8255, 1.9994, 1.7280, 2.0905, 2.1542, 2.0453, 2.0479, 0.7284, 0.5044, 0.4869, 0.4740, 0.4758, 0.4769, 0.5563, 1.0337, 0.5026, 0.5125, 0.5394, 0.5051, 0.5531,
+        1.6408, 1.0412, 1.0414, 1.1553, 1.9888, 2.0265, 1.7084, 2.0727, 1.7598, 2.0811, 2.0487, 1.1361, 0.5722, 0.4823, 0.4920, 0.4869, 0.4857, 0.6841, 1.0771, 0.5037, 0.5091, 0.4973, 0.4907,
+        0.5276, 0.8663, 1.6473, 2.0803, 1.7539, 2.1116, 2.1094, 1.8248, 2.1046, 1.7192, 2.1151, 2.0976, 1.1223, 0.6202, 0.5946, 0.4964, 0.4856, 0.4832, 0.4907, 0.9291, 1.1432, 0.9456, 0.5002,
+        0.5498, 1.2626, 1.9969, 1.7109, 2.1260, 1.8152, 2.0843, 2.0931, 1.7164, 2.0862, 1.7251, 2.0698, 1.9957, 0.5372, 0.5161, 0.4792, 0.4903, 0.4795, 0.4850, 0.9139, 1.1165, 0.8699, 0.4870,
+        0.5043, 0.5403, 0.5689, 0.5660, 0.5693, 0.5619, 0.6212, 0.5984, 1.0383, 1.6481, 2.0745, 1.6459, 2.0444, 2.0050, 0.5223, 0.4727, 0.4765, 0.4748, 0.4701, 0.5286, 1.0825, 1.0911, 1.1228,
+        0.5396, 0.6080, 1.2224, 1.0970, 1.1322, 1.1276, 1.3504, 1.1622, 1.1373, 1.1578, 1.6271, 1.9837, 2.0700, 2.1610, 1.8317, 0.9533, 0.4791, 0.4783, 0.4797, 0.4813, 0.4765, 0.8190, 0.7801,
+        0.6535, 0.6064, 0.5917, 0.5463, 0.5528, 0.6970, 1.5058, 0.9797, 1.3192, 1.1339, 1.7630, 1.9825, 2.2228, 2.1435, 2.2254, 2.0222, 0.5932, 0.5241, 0.4851, 0.4890, 0.4732, 0.4723, 0.4774,
+        1.0781, 1.1187, 1.1183, 1.0928, 1.2114, 1.9483, 2.1199, 1.3796, 1.9784, 2.1505, 2.0796, 1.7855, 1.7017, 2.0679, 1.7035, 2.0918, 2.0481, 0.6296, 0.5005, 0.4677, 0.4789, 0.4677, 0.4736,
+        0.6010, 1.1122, 1.0995, 1.0934, 0.5561, 0.5015, 0.5093, 1.0491, 1.1264, 1.1244, 1.1338, 1.7472, 1.9006, 2.0952, 1.8448, 1.9033, 2.0462, 1.8229, 1.0858, 0.5052, 0.4482, 0.4422, 0.4314,
+        0.4401, 0.4464, 1.0522, 1.0598, 0.6405, 0.4642, 0.4801, 0.4578, 0.4940, 1.1690, 2.0341, 2.0748, 1.5843, 2.0002, 2.0848, 1.8366, 1.9883, 1.9984, 1.7456, 0.5048, 0.4958, 0.4583, 0.4418,
+        0.4315, 0.4470, 0.4572, 0.4896, 1.0690, 1.0628, 0.6737, 0.4590, 0.6385, 1.0409, 1.1048, 2.0292, 2.0164, 1.5847, 1.8648, 2.0536, 1.7883, 1.8351, 1.9864, 1.6687, 0.5058, 0.4568, 0.4320,
+        0.4395, 0.4390, 0.4415, 0.5485, 1.0556, 1.0924, 0.6183, 0.4572, 0.4706, 0.4620, 0.5401, 0.4939, 0.6047, 1.8168, 1.0963, 1.8581, 2.0457, 1.7812, 1.8198, 1.9741, 1.7764, 0.9455, 0.4680,
+        0.4339, 0.4331, 0.4564, 0.4264, 0.5511, 1.0837, 1.0719, 0.8003, 0.4755, 0.4713, 0.4835, 0.4604, 0.5191, 1.2226, 1.7929, 1.7668, 2.0681, 1.9848, 1.7819, 1.9177, 2.0473, 1.7679, 0.5003,
+        0.4994, 0.4489, 0.4430, 0.4543, 0.4517, 0.4469, 1.0854, 1.0795, 0.9234, 0.4573, 0.4584, 1.0308, 0.9087, 0.4809, 1.0357, 1.3010, 0.8792, 2.0591, 2.0433, 1.8246, 1.8580, 2.0305, 1.8147,
+        1.0030, 0.4800, 0.4463, 0.4629, 0.4548, 0.4355, 0.5767, 1.0643, 1.0852, 0.8298, 0.5319, 1.4226, 1.9930, 2.0498, 1.3625, 1.7744, 2.0846, 1.9384, 2.0543, 1.1485, 1.6742, 2.0275, 1.0733,
+        0.4803, 0.4701, 0.4453, 0.4244, 0.4345, 0.4352, 0.4300, 0.6279, 1.0643, 1.0981, 1.0622, 0.6052, 0.4680, 0.7918, 0.4074, 0.4368, 0.5985, 1.7631, 1.9783, 1.5036, 1.9831, 1.9699, 1.5138,
+        1.9960, 1.9667, 1.0847, 0.4721, 0.4368, 0.4268, 0.4339, 0.4445, 0.7577, 1.0583, 1.0723, 0.6700, 0.4699, 0.4480, 0.4758, 1.3844, 1.9682, 1.7472, 1.7637, 2.0045, 1.6182, 2.0252, 1.9967,
+        1.6673, 1.9915, 1.9963, 1.1233, 0.7644, 0.6909, 0.6670, 0.6553, 0.6539, 0.6556, 0.8574, 0.4590, 0.4405, 0.4589, 0.4809, 0.6321, 1.5388, 1.9768, 1.7816, 1.7857, 2.0059, 1.5236, 2.0522,
+        2.0563, 1.5572, 1.9859, 1.9044, 0.9936, 0.4570, 0.4385, 0.4408, 0.4481, 0.4515, 1.0683, 1.0898, 1.0623, 0.4760, 0.4991, 0.5349, 0.4943, 0.5145, 0.5440, 0.5478, 0.5534, 0.6637, 1.2418,
+        2.0422, 2.0414, 1.6568, 2.0455, 1.9477, 0.6655, 0.6254]}};
+
+    var lineData10 = {"Domain": "(null)", "Reference": "(null)", "Version": "(null)", "ts": "2014-06", "Log Program Version": "2", "Coverage": "(null)", "reading units": "kW",
+        "data": {"start": 1401577200000, "step": 3600000, "readings": [
+        0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329,
+        0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0329, 0.0329, 0.0330, 0.0329, 0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0330, 0.0329, 0.0329, 0.0329,
+        0.0330, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0329, 0.0000, 1.8175, 1.6832, 1.7180, 1.9453, 1.9326, 2.5328, 2.5867, 3.2884, 2.8516, 3.2177,
+        2.6183, 1.6584, 0.8869, 1.0659, 0.8900, 0.8906, 0.8914, 1.2025, 1.3999, 0.9323, 0.9180, 0.9109, 1.1583, 1.3118, 0.9903, 1.0708, 1.0512, 1.0680, 1.2031, 1.1361, 2.1405, 2.5842, 2.3508,
+        2.7996, 2.6383, 1.6303, 1.3429, 1.2306, 1.4604, 1.2395, 1.2419, 1.3707, 1.3544, 0.9588, 1.0120, 0.8737, 1.4995, 2.7936, 2.7677, 2.3978, 2.7268, 2.7176, 2.2316, 1.7530, 2.4442, 2.6046,
+        2.3295, 2.8639, 2.6777, 1.0049, 0.8005, 0.7970, 0.9917, 0.6351, 0.3142, 0.8456, 0.9154, 1.0125, 1.2653, 1.1814, 1.1132, 1.1926, 1.3505, 1.4015, 1.2398, 1.3796, 2.5861, 2.6062, 2.5566,
+        2.6427, 2.3115, 2.8258, 2.6451, 1.3662, 1.1638, 0.9330, 0.7992, 0.9870, 0.7948, 0.9812, 0.8947, 0.8782, 1.0596, 0.9467, 0.9001, 0.9071, 0.9202, 1.8373, 2.5832, 2.6377, 2.6820, 2.3657,
+        4.0171, 3.1805, 3.3581, 2.9286, 2.9255, 1.9978, 0.9184, 0.8290, 1.0087, 0.7966, 0.8033, 0.8228, 0.8189, 0.8219, 1.3248, 0.8184, 0.8244, 0.8198, 1.9379, 2.8222, 2.5996, 1.8402, 2.7010,
+        2.9155, 2.3370, 2.7117, 2.3426, 2.7051, 2.6689, 1.2165, 0.8153, 0.8088, 0.8084, 0.8011, 0.7420, 1.2288, 1.2549, 1.1987, 0.8454, 0.8408, 1.6983, 1.9221, 2.0747, 1.7444, 1.7459, 1.7806,
+        1.7954, 2.0104, 2.1225, 2.4566, 2.1822, 2.7122, 2.4777, 1.3241, 0.8955, 0.8927, 1.1143, 0.8998, 0.9038, 1.1838, 1.0753, 1.2327, 0.9525, 1.0209, 0.9913, 0.9773, 1.2133, 0.9836, 0.8566,
+        0.8542, 0.9215, 1.5375, 2.1795, 2.4952, 2.4407, 2.6467, 2.6261, 0.9503, 0.7450, 0.9259, 0.7435, 0.7538, 0.7475, 1.2500, 1.5511, 1.2570, 1.2699, 1.2622, 1.7799, 2.6435, 2.6506, 2.2021,
+        1.5213, 1.1021, 0.7809, 0.8168, 2.0483, 2.7501, 2.2190, 2.4984, 2.4758, 0.9741, 0.9994, 0.8056, 0.8201, 0.8153, 0.8094, 1.2297, 1.4600, 1.0017, 0.9008, 1.0623, 1.9361, 2.3997, 2.4653,
+        2.0747, 3.0436, 2.9641, 3.0683, 2.6064, 2.4590, 3.2845, 3.4042, 2.5284, 2.6817, 0.9992, 0.7506, 0.8916, 0.7211, 0.7268, 0.7325, 0.8033, 1.2498, 0.8511, 0.8635, 0.8491, 1.0187, 0.9965,
+        2.1071, 1.5902, 1.6653, 1.8020, 2.3978, 2.5652, 2.2489, 2.7384, 2.2385, 2.5417, 2.6656, 1.2915, 0.8638, 0.9672, 0.7441, 0.7411, 0.7394, 0.9052, 1.4487, 0.8522, 0.8496, 0.8372, 0.8245,
+        0.8684, 1.5343, 2.1008, 2.4879, 2.1853, 2.7103, 2.8178, 2.4346, 2.5438, 2.4980, 2.7519, 2.5538, 1.4203, 0.9503, 1.1034, 0.7799, 0.9207, 0.7429, 0.9218, 1.1190, 1.4790, 1.1160, 0.7630,
+        0.9957, 1.6544, 2.6077, 2.3711, 2.7643, 2.4705, 2.5181, 2.8101, 2.3883, 2.5021, 2.3734, 2.5285, 2.4385, 0.8793, 1.0131, 0.7532, 0.7632, 0.7590, 0.7539, 1.0978, 1.4393, 1.0898, 0.8427,
+        0.8461, 0.8783, 0.8945, 1.0974, 0.8935, 0.8947, 1.2146, 0.9346, 1.4107, 2.0833, 2.4795, 2.3057, 2.4754, 2.4217, 0.7913, 0.9520, 0.7413, 0.7358, 0.7381, 0.7863, 1.2279, 1.2295, 1.4905,
+        0.8813, 0.9155, 1.4836, 1.5588, 1.8896, 1.7385, 2.0425, 1.6267, 1.6018, 1.8447, 2.0427, 2.3812, 2.6764, 2.8431, 2.2004, 1.3191, 0.7340, 0.7362, 0.7405, 0.9741, 0.7311, 1.0065, 0.9777,
+        0.9145, 0.8701, 1.1094, 0.8598, 0.8425, 1.1310, 2.0233, 1.5628, 1.9301, 1.6442, 4.8522, 3.6943, 3.5293, 2.6586, 3.4348, 2.8208, 0.9710, 1.0192, 0.8263, 0.8389, 0.8171, 1.0329, 0.8165,
+        1.2289, 1.2559, 1.2465, 1.4451, 1.8897, 2.3967, 2.7298, 2.8929, 2.7303, 2.9790, 2.7712, 2.5236, 2.1219, 2.4659, 2.1446, 2.7215, 2.4808, 1.1078, 0.8035, 0.7272, 0.7397, 0.7274, 0.7318,
+        0.8378, 1.4776, 1.2401, 1.2361, 0.7890, 0.9899, 0.8507, 1.4789, 1.2035, 1.4491, 1.4668, 2.2260, 2.5705, 2.5325, 2.3405, 2.5172, 2.6994, 2.2483, 1.1955, 0.8083, 0.7552, 0.9568, 0.7379,
+        0.7492, 0.7630, 1.2695, 1.2757, 1.2015, 0.8723, 0.8808, 0.8485, 0.8858, 1.9302, 2.5123, 2.5877, 2.3145, 2.4829, 2.9179, 2.3593, 2.7505, 2.5082, 2.4853, 0.8826, 0.8839, 0.8395, 1.0475,
+        0.8088, 0.8246, 0.8448, 0.8611, 1.2859, 1.2862, 1.3129, 0.9812, 1.6378, 2.0244, 2.0929, 2.5986, 2.5477, 2.3477, 2.3667, 2.5799, 2.3141, 2.3840, 2.7599, 2.2256, 0.8452, 0.7649, 0.7390,
+        0.9760, 0.7462, 0.7517, 0.8503, 1.2804, 1.3169, 1.1850, 0.8461, 0.8607, 0.8635, 0.9348, 1.2711, 1.1893, 2.2299, 1.8083, 2.7193, 2.6553, 2.6606, 2.4972, 2.6470, 2.5978, 1.2366, 0.9711,
+        0.9411, 0.9387, 1.2035, 0.9350, 1.0298, 1.4241, 1.6534, 1.2232, 1.0138, 1.2708, 1.0159, 1.0057, 1.2499, 1.6381, 2.8672, 2.4617, 2.6391, 2.6030, 2.7798, 2.5837, 2.9738, 2.4519, 1.0260,
+        1.0479, 0.9786, 0.9720, 1.1796, 0.9874, 0.9828, 1.4473, 1.4260, 1.3367, 1.0955, 1.0877, 1.6183, 1.3456, 1.1268, 1.9242, 2.5308, 1.7325, 2.6736, 2.6838, 2.8065, 2.5444, 2.7195, 2.6550,
+        1.2588, 0.9211, 1.0479, 0.8789, 0.8710, 0.8475, 0.9759, 1.6525, 1.4644, 1.2255, 0.9986, 2.3641, 2.5735, 2.9451, 3.1356, 2.6689, 2.7130, 3.0616, 2.7010, 2.0910, 2.6061, 2.7557, 1.8049,
+        0.8981, 0.8867, 0.8650, 1.0275, 0.8570, 0.8595, 0.8564, 1.0383, 1.4512, 1.4792, 1.4424, 1.2650, 0.9916, 1.6103, 1.3407, 1.3653, 1.4892, 2.4289, 2.9031, 2.2172, 2.6855, 2.6705, 2.2600,
+        2.7236, 2.8601, 1.3472, 0.8895, 1.0426, 0.8455, 0.8516, 0.8619, 1.1653, 1.7451, 1.6250, 1.1452, 1.0114, 0.9807, 1.0112, 2.0845, 2.9530, 2.4836, 2.4901, 2.7061, 2.3415, 2.9138, 2.7028,
+        2.3641, 2.9385, 2.6993, 1.7476, 0.9588, 0.8884, 0.8660, 1.2354, 0.8564, 0.8562, 1.1490, 0.8929, 0.8751, 0.8853, 1.1783, 1.2538, 2.2898, 2.7248, 2.5214, 2.7655, 2.7376, 2.2560, 2.7497,
+        2.7815, 2.5296, 2.7263, 2.6400, 1.6215, 0.8808, 0.8608, 0.8626, 0.8680, 1.1065, 1.4559, 1.4684, 1.4444, 1.0097, 1.4933, 1.5541, 1.3442, 1.2280, 1.5366, 1.3556, 1.3614, 1.5895, 1.6914,
+        2.7512, 2.9431, 2.3986, 2.7521, 2.6808, 1.2060, 0.9171]}};
+
+    //Group to hold all line data
+    var lineDataGroup = new THREE.Object3D();
+    lineDataGroup.name = 'lineDataGroup';
+    lineDataGroup.position.x = -139;
+    lineDataGroup.position.y = -25;
+
+    //Create line data
+    var powerData = [];
+    powerData.push(lineData10);
+    powerData.push(lineData11);
+    powerData.push(lineData12);
+
     var scaleFactor = 10;
-    var positions = new Float32Array( numPoints * 3 );
-    //var colours = new Float32Array( numPoints * 3 );
-
-    for ( var i = 0; i < numPoints; i ++ ) {
-        // positions
-        var dataPoint = lineData.data.readings[i];
-        positions[ i * 3 ] = i;
-        positions[ i * 3 + 1 ] = dataPoint*scaleFactor;
-        positions[ i * 3 + 2 ] = 0;
-
-       // colours[ i * 3] = 0.5;
-        //colours[ i * 3 + 1 ] = 0.5;
-        //colours[ i * 3 + 2 ] = 0.5;
+    var colours = [0xFF3FA7, 0x00ff00, 0x2372FF];
+    for(var i=0; i<powerData.length; ++i) {
+        var numPoints = powerData[i].data.readings.length;
+        var geometry = new THREE.BufferGeometry();
+        var material = new THREE.LineBasicMaterial({ color : colours[i] });
+        var positions = new Float32Array( numPoints * 3 );
+        for ( var x = 0; x < numPoints; x ++ ) {
+            // positions
+            var dataPoint = powerData[i].data.readings[x];
+            positions[ x * 3 ] = x;
+            positions[ x * 3 + 1 ] = dataPoint*scaleFactor;
+            positions[ x * 3 + 2 ] = 0;
+        }
+        geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+        geometry.computeBoundingSphere();
+        var lineMesh = new THREE.Line( geometry, material );
+        lineMesh.name = 'phase'+i;
+        lineMesh.position.y = i * 20;
+        lineMesh.visible = this.showData;
+        lineDataGroup.add(lineMesh);
     }
 
-    geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
-    //geometry.addAttribute( 'color', new THREE.BufferAttribute( colours, 3));
-    geometry.computeBoundingSphere();
-
-    var lineMesh = new THREE.Line( geometry, material );
-    var lineDataGroup = new THREE.Object3D();
-    lineDataGroup.name = 'lineData';
-    lineDataGroup.position.x = -139;
-    lineDataGroup.add(lineMesh);
     this.scene.add(lineDataGroup);
 
     //Time line
     var timeGeom = new THREE.BufferGeometry();
-    var timeMat = new THREE.LineBasicMaterial({ color : 0xFF3CB3});
+    var timeMat = new THREE.LineBasicMaterial({ color : 0xFFffff});
     var scalePosition = new Float32Array(6);
-    var scaleStart = new THREE.Vector3(0, 0, 0);
-    var scaleEnd = new THREE.Vector3(0, 30, 0);
+    var scaleStart = new THREE.Vector3(0, -25, 0);
+    var scaleEnd = new THREE.Vector3(0, 50, 0);
     scalePosition[0] = scaleStart.x;
     scalePosition[1] = scaleStart.y;
     scalePosition[2] = scaleStart.z;
@@ -379,6 +457,7 @@ EnergyApp.prototype.createEnvironment = function() {
 
     var timeLine = new THREE.Line(timeGeom, timeMat);
     timeLine.name = 'timeLine';
+    timeLine.visible = this.showData;
 
     this.scene.add(timeLine);
 };
@@ -535,6 +614,12 @@ EnergyApp.prototype.showPreviousLocation = function() {
 
     console.log('Location =', this.currentLocationName);
 
+    this.showData = false;
+    if(this.currentLocationName.indexOf('Screen 1') >= 0) {
+        this.showData = true;
+    }
+    this.showGraphData(this.showData);
+
     //Construct date
     var eventDate = this.dayName+' '+this.date+' '+this.month+' 2014 - '+this.hour+':00 - '+this.hour+':59';
     //Update current variables to something sensible
@@ -586,6 +671,12 @@ EnergyApp.prototype.showNextLocation = function() {
     var screenGroup = this.screenGroups[this.currentLocation];
     var occGroup = getOccupancyGroup(screenGroup);
     console.log('Location =', this.currentLocationName);
+
+    this.showData = false;
+    if(this.currentLocationName.indexOf('Screen 1') >= 0) {
+        this.showData = true;
+    }
+    this.showGraphData(this.showData);
 
     //Construct date
     var eventDate = this.dayName+' '+this.date+' '+this.month+' 2014 - '+this.hour+':00 - '+this.hour+':59';
@@ -642,7 +733,7 @@ EnergyApp.prototype.showPreviousTime = function() {
 
     //Update timeline
     var hours = getHoursFromStart(this.date, this.hour);
-    var timeLine = this.scene.getObjectByName('lineData');
+    var timeLine = this.scene.getObjectByName('lineDataGroup');
     if(timeLine) {
         timeLine.position.x = -hours;
     }
@@ -665,7 +756,7 @@ EnergyApp.prototype.showNextTime = function() {
 
     //Update timeline
     var hours = getHoursFromStart(this.date, this.hour);
-    var timeLine = this.scene.getObjectByName('lineData');
+    var timeLine = this.scene.getObjectByName('lineDataGroup');
     if(timeLine) {
         timeLine.position.x = -hours;
     }
@@ -691,7 +782,7 @@ EnergyApp.prototype.showPreviousDay = function() {
             populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
             //Update timeline
             var hours = getHoursFromStart(this.date, this.hour);
-            var timeLine = this.scene.getObjectByName('lineData');
+            var timeLine = this.scene.getObjectByName('lineDataGroup');
             if(timeLine) {
                 timeLine.position.x = -hours;
             }
@@ -708,7 +799,7 @@ EnergyApp.prototype.showPreviousDay = function() {
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
     //Update timeline
     var hours = getHoursFromStart(this.date, this.hour);
-    var timeLine = this.scene.getObjectByName('lineData');
+    var timeLine = this.scene.getObjectByName('lineDataGroup');
     if(timeLine) {
         timeLine.position.x = -hours;
     }
@@ -734,7 +825,7 @@ EnergyApp.prototype.showNextDay = function() {
             populateHall(this.screenGroups[this.currentLocation], this.personGeom, item['admits'], this.maxOccupancy[this.currentLocation]);
             //Update timeline
             var hours = getHoursFromStart(this.date, this.hour);
-            var timeLine = this.scene.getObjectByName('lineData');
+            var timeLine = this.scene.getObjectByName('lineDataGroup');
             if(timeLine) {
                 timeLine.position.x = -hours;
             }
@@ -751,10 +842,39 @@ EnergyApp.prototype.showNextDay = function() {
     populateHall(this.screenGroups[this.currentLocation], this.personGeom, -1, -1);
     //Update timeline
     var hours = getHoursFromStart(this.date, this.hour);
-    var timeLine = this.scene.getObjectByName('lineData');
+    var timeLine = this.scene.getObjectByName('lineDataGroup');
     if(timeLine) {
         timeLine.position.x = -hours;
     }
+};
+
+EnergyApp.prototype.onPhaseSelect = function(name) {
+    //Toggle graph data visibility
+
+    var line = this.scene.getObjectByName(name, true);
+    if(line) {
+        line.visible = !line.visible;
+    }
+};
+
+EnergyApp.prototype.showGraphData = function(show) {
+    //Enable/Disable graph data
+    var line = this.scene.getObjectByName('lineDataGroup', true);
+    if(line) {
+        line.traverse(function(obj) {
+            if(obj instanceof THREE.Line) {
+                var checkbox = $('#'+obj.name);
+                obj.visible = show ? checkbox[0].checked : false;
+            }
+        });
+    }
+    line = this.scene.getObjectByName('timeLine', true);
+    if(line) {
+        line.visible = this.showData;
+    }
+    //GUI
+    var gui = $('.powerGui');
+    show ? gui.show() : gui.hide();
 };
 
 EnergyApp.prototype.onKeyDown = function(event) {
@@ -1047,6 +1167,10 @@ $(document).ready(function() {
     $("#dateForward").on("click", function(evt) {
         app.showNextDay();
     });
+    $(".pure-checkbox").on('change', function(evt) {
+        app.onPhaseSelect(evt.target.id);
+    });
+    $('.powerGui').hide();
     $(document).keydown(function (event) {
         app.onKeyDown(event);
     });

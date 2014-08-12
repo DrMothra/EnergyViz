@@ -7,8 +7,8 @@ body {
 }
 .version {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 20px;
+    left: 45%;
     color: #7fa5ff;
 }
 .mainButton {
@@ -20,8 +20,8 @@ body {
     color: #7fa5ff;
 }
 #loadButton {
-    top: 50px;
-    left: 75px;
+    top: 20px;
+    left: 300px;
 }
 .upload {
     position: absolute;
@@ -39,8 +39,8 @@ body {
     padding: 5px;
     position: absolute;
     border-radius: 5px;
-    top: 130px;
-    left: 30px;
+    top: 20px;
+    left: 20px;
     background-color: rgba(150, 150, 150, 0.5);
     color: #7fa5ff;
 }
@@ -67,15 +67,15 @@ body {
 }
 .locationControl {
     top: 800px;
-    left: 600px;
+    left: 35%;
 }
 .dateControl {
     top: 800px;
-    left: 800px;
+    left: 47%;
 }
 .timeControl {
     top: 800px;
-    left: 1000px;
+    left: 59%;
 }
 .control {
     padding: 5px;
@@ -90,3 +90,18 @@ body {
 .controlTitle {
     margin-top: 2px;
 }
+.powerGui {
+    min-width: 300px;
+    position: absolute;
+    border-radius: 5px;
+    background-color: rgba(150, 150, 150, 0.5);
+    top: 20px;
+    left: 80%;
+    color: #7fa5ff;
+}
+.powerControl {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
