@@ -64,17 +64,22 @@ body {
     border-radius: 5px;
     background-color: rgba(150, 150, 150, 0.5);
     color: #7fa5ff;
+    top: 800px;
+}
+@media screen and (max-height: 768px) {
+    .locationControl,
+    .dateControl,
+    .timeControl{
+        top: 600px;
+    }
 }
 .locationControl {
-    top: 800px;
     left: 35%;
 }
 .dateControl {
-    top: 800px;
     left: 47%;
 }
 .timeControl {
-    top: 800px;
     left: 59%;
 }
 .control {
