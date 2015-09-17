@@ -30,7 +30,8 @@ BaseApp.prototype.init = function(container) {
     this.createControls();
     this.projector = new THREE.Projector();
     this.stats = initStats();
-    this.statsShowing = true;
+    this.statsShowing = false;
+    $("#Stats-output").hide();
 };
 
 BaseApp.prototype.createRenderer = function() {
