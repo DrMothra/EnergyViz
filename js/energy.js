@@ -121,8 +121,11 @@ EnergyApp.prototype = new BaseApp();
 EnergyApp.prototype.init = function(container) {
     BaseApp.prototype.init.call(this, container);
     this.data = null;
+    this.allDataLoaded = false;
     this.updateRequired = false;
     this.guiControls = null;
+    this.screenGeometry = null;
+    this.personGeom = null;
     this.dataFile = null;
     this.filename = '';
     this.objectsRendered = 0;
@@ -141,6 +144,14 @@ EnergyApp.prototype.init = function(container) {
 
 EnergyApp.prototype.update = function() {
     //Perform any updates
+    if(!this.allDataLoaded) {
+        if(this.personGeom && this.screenGeometry && this.data) {
+            this.generateGUIControls();
+            this.generateData();
+            this.updateRequired = true;
+            this.allDataLoaded = true;
+        }
+    }
     var delta = this.clock.getDelta();
     var clicked = this.mouse.clicked;
 
@@ -200,6 +211,20 @@ EnergyApp.prototype.createScene = function() {
         var material = new THREE.MeshLambertMaterial(materials);
         _this.screenMaterial = material;
     });
+
+    //Load json data
+    var _this = this;
+    var dataLoad = new dataLoader();
+    var dataParser = function(data) {
+        _this.data = data;
+        if(_this.personGeom && _this.screenGeometry) {
+            _this.generateGUIControls();
+            _this.generateData();
+            _this.updateRequired = true;
+        }
+    };
+
+    dataLoad.load("data/energy.json", dataParser);
 };
 
 EnergyApp.prototype.createEnvironment = function() {
